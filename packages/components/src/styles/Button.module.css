@@ -10,7 +10,7 @@
 	margin: 0;
 	text-decoration: none;
 	appearance: none;
-	border-radius: var(--lp-border-radius-medium);
+	border-radius: var(--lp-border-radius-large);
 	border: none;
 	outline: none;
 	white-space: nowrap;
