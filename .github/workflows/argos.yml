@@ -1,0 +1,49 @@
+name: Argos
+
+on:
+  # Builds on `main` become the baseline every pull request is compared against.
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  # Argos authenticates via OIDC, so no token needs to be stored as a secret.
+  id-token: write
+
+jobs:
+  visual-testing:
+    runs-on: ubuntu-latest
+    name: Visual testing
+    steps:
+      - name: Check out repo
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0 # Argos needs the git history to find the baseline build
+
+      - uses: pnpm/action-setup@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v6
+        with:
+          # Not `.nvmrc` (22.17.0): loading Playwright's ESM reporters trips a
+          # `require(esm)` assertion in that release (`ERR_INTERNAL_ASSERTION:
+          # Unexpected module status 3`). 24.x is within this repo's
+          # `engines.node` range and builds Storybook identically.
+          node-version: '24'
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install
+
+      - name: Build Storybook
+        run: pnpm storybook:build
+        env:
+          NODE_OPTIONS: '--max_old_space_size=6144'
+
+      - name: Install Playwright browser
+        run: pnpm exec playwright install --with-deps chromium
+
+      - name: Take screenshots and upload to Argos
+        run: pnpm exec playwright test -c argos/playwright.config.ts
